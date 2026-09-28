@@ -15,6 +15,9 @@ const SKILL_FOLDERS_DESC = `One folder per line, relative to the vault root, suc
 const SKILL_FOLDERS_PLACEHOLDER = ".claude/skills";
 const TARGETS_NAME = "Where the skill goes";
 const TARGETS_OFF = 'Nowhere. Turn on "Install the agent skill" to write it.';
+const RESOLVE_LINKS_NAME = "Resolve links by frontmatter id";
+const RESOLVE_LINKS_DESC =
+  "When on, a link such as [[design-2026-q3]] opens the note whose frontmatter id or aliases match it. A link that matches a file name still opens that file. To find the note, the plugin reads the frontmatter of every Markdown note in the vault from Obsidian's metadata cache. Nothing leaves the vault.";
 
 export class AgentThreadsSettingTab extends PluginSettingTab {
   /** The row that lists where the skill goes, while it is on screen. */
@@ -39,18 +42,21 @@ export class AgentThreadsSettingTab extends PluginSettingTab {
         control: { type: "textarea", key: "skillFolders", defaultValue: DEFAULT_SETTINGS.skillFolders, placeholder: SKILL_FOLDERS_PLACEHOLDER, rows: 4 },
       },
       { name: TARGETS_NAME, searchable: false, render: (row) => this.showTargets(row) },
+      { name: RESOLVE_LINKS_NAME, desc: RESOLVE_LINKS_DESC, control: { type: "toggle", key: "resolveLinksById", defaultValue: DEFAULT_SETTINGS.resolveLinksById } },
     ];
   }
 
   override getControlValue(key: string): unknown {
     if (key === "installAgentSkill") return this.plugin.settings.installAgentSkill;
     if (key === "skillFolders") return this.plugin.settings.skillFolders;
+    if (key === "resolveLinksById") return this.plugin.settings.resolveLinksById;
     return undefined;
   }
 
   override async setControlValue(key: string, value: unknown): Promise<void> {
     if (key === "installAgentSkill" && typeof value === "boolean") await this.setInstallAgentSkill(value);
     if (key === "skillFolders" && typeof value === "string") await this.setSkillFolders(value);
+    if (key === "resolveLinksById" && typeof value === "boolean") await this.setResolveLinksById(value);
   }
 
   /** The same settings drawn by hand, for app versions without declarative settings. */
@@ -65,6 +71,10 @@ export class AgentThreadsSettingTab extends PluginSettingTab {
       .setDesc(SKILL_FOLDERS_DESC)
       .addTextArea((area) => area.setPlaceholder(SKILL_FOLDERS_PLACEHOLDER).setValue(this.plugin.settings.skillFolders).onChange((value) => this.setSkillFolders(value)));
     this.showTargets(new Setting(this.containerEl));
+    new Setting(this.containerEl)
+      .setName(RESOLVE_LINKS_NAME)
+      .setDesc(RESOLVE_LINKS_DESC)
+      .addToggle((toggle) => toggle.setValue(this.plugin.settings.resolveLinksById).onChange((value) => this.setResolveLinksById(value)));
   }
 
   /** Writes the skill when the owner leaves the page, because typing in the folder list writes nothing. */
@@ -85,6 +95,13 @@ export class AgentThreadsSettingTab extends PluginSettingTab {
     this.plugin.settings.skillFolders = value;
     await this.plugin.saveSettings();
     await this.refreshTargets();
+  }
+
+  /** Stores the setting and installs or removes the resolution at once, so no reload is needed. */
+  private async setResolveLinksById(value: boolean): Promise<void> {
+    this.plugin.settings.resolveLinksById = value;
+    this.plugin.applyIdLinkSetting();
+    await this.plugin.saveSettings();
   }
 
   /** Makes `row` the row that lists where the skill goes and fills it, answering the cleanup that lets it go. */

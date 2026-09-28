@@ -1,9 +1,7 @@
 /* An open note's span in Live Preview or source mode. */
 .agent-thread-mark {
   background-color: color-mix(in srgb, var(--interactive-accent) 20%, transparent);
-  text-decoration: underline;
-  text-decoration-color: var(--interactive-accent);
-  text-decoration-thickness: 2px;
+  border-bottom: 2px solid var(--interactive-accent);
   cursor: pointer;
 }
 

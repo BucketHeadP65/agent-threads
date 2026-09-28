@@ -11,7 +11,8 @@ import type { NoteAnchor } from "./anchors";
 import { anchorFor } from "./anchors";
 import { BUNDLED_SKILL } from "./bundled-skill";
 import { createAddNoteExtension } from "./editor-extension";
-import { installIdLinkResolution } from "./id-links";
+import { idLinkHost } from "./id-link-host";
+import { IdLinkResolution } from "./id-links";
 import { createNoteDecorationsExtension } from "./note-decorations";
 import type { ReadingPane } from "./reading-marks";
 import { refreshReadingMarks, registerReadingMarks } from "./reading-marks";
@@ -48,6 +49,8 @@ export default class AgentThreadsPlugin extends Plugin {
     (path) => this.notifySidecarWritten(path),
     SIDECAR_POLL_INTERVAL_MS,
   );
+  /** Link resolution by frontmatter id, installed only while its setting is on. */
+  private readonly idLinks = new IdLinkResolution(idLinkHost(this.app));
 
   /** The vault's file adapter with normalized paths, the only way the plugin touches thread files and the skill. */
   private get vaultAdapter(): SidecarAdapter {
@@ -71,7 +74,8 @@ export default class AgentThreadsPlugin extends Plugin {
     this.registerEditorExtension(createNoteDecorationsExtension(this));
     registerReadingViewSelection(this);
     registerReadingMarks(this);
-    installIdLinkResolution(this);
+    this.register(() => this.idLinks.setEnabled(false));
+    this.applyIdLinkSetting();
 
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
@@ -158,6 +162,11 @@ export default class AgentThreadsPlugin extends Plugin {
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+  }
+
+  /** Installs link resolution by frontmatter id while its setting is on, and removes it while it is off. */
+  applyIdLinkSetting(): void {
+    this.idLinks.setEnabled(this.settings.resolveLinksById);
   }
 
   /** Where the skill goes under the current settings and vault. */
