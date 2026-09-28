@@ -16,7 +16,7 @@ Your notes stay untouched. Some comment plugins write the discussion into the no
 - An open note's span is underlined and tinted in the editor and in reading view. Clicking it opens the thread.
 - Clicking a thread's quoted span scrolls the editor to it. When the text no longer exists, the thread is labeled "Anchor lost".
 - When an agent or any other tool changes a thread file on disk, the panel refreshes within three seconds.
-- Links can resolve by a note's frontmatter `id` and `aliases` when no file name matches. So `[[design-2026-q3]]` opens the note whose frontmatter says `id: design-2026-q3`, whatever its file is called. This is off by default. Turn on "Resolve links by frontmatter id" in the plugin's settings to use it.
+- Links can resolve by a note's frontmatter `id` and `aliases` when no file name matches. So `[[design-2026-q3]]` opens the note whose frontmatter says `id: design-2026-q3`, whatever its file is called. This is off by default. Turn on "Resolve links by frontmatter ID" in the plugin's settings to use it.
 
 ## Install
 
@@ -89,7 +89,7 @@ The plugin reads and writes only inside your vault.
 It never uses the network, and it never installs or updates itself.
 The skill is plain files that the plugin copies from its own bundle.
 
-The plugin lists the vault's Markdown files only while "Resolve links by frontmatter id" is on.
+The plugin lists the vault's Markdown files only while "Resolve links by frontmatter ID" is on.
 It needs that list to find the note whose frontmatter `id` or `aliases` match a link.
 It reads the frontmatter from Obsidian's metadata cache.
 

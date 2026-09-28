@@ -15,9 +15,9 @@ const SKILL_FOLDERS_DESC = `One folder per line, relative to the vault root, suc
 const SKILL_FOLDERS_PLACEHOLDER = ".claude/skills";
 const TARGETS_NAME = "Where the skill goes";
 const TARGETS_OFF = 'Nowhere. Turn on "Install the agent skill" to write it.';
-const RESOLVE_LINKS_NAME = "Resolve links by frontmatter id";
+const RESOLVE_LINKS_NAME = "Resolve links by frontmatter ID";
 const RESOLVE_LINKS_DESC =
-  "When on, a link such as [[design-2026-q3]] opens the note whose frontmatter id or aliases match it. A link that matches a file name still opens that file. To find the note, the plugin reads the frontmatter of every Markdown note in the vault from Obsidian's metadata cache. Nothing leaves the vault.";
+  "When on, a link such as [[design-2026-q3]] opens the note whose frontmatter ID or aliases match it. A link that matches a file name still opens that file. To find the note, the plugin reads the frontmatter of every Markdown note in the vault from Obsidian's metadata cache. Nothing leaves the vault.";
 
 export class AgentThreadsSettingTab extends PluginSettingTab {
   /** The row that lists where the skill goes, while it is on screen. */
