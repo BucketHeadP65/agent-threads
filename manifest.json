@@ -1,9 +1,9 @@
 {
   "id": "agent-threads",
   "name": "Agent Threads",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "minAppVersion": "1.7.2",
-  "description": "Note threads you and your coding agents share on Markdown files, stored in plain JSON beside the vault.",
+  "description": "Share note threads with your coding agents on Markdown files, stored as plain JSON in your vault.",
   "author": "BucketHeadP65",
   "authorUrl": "https://github.com/BucketHeadP65",
   "isDesktopOnly": true

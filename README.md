@@ -30,17 +30,62 @@ It does not run on mobile.
 ## The agent skill
 
 The plugin carries an agent skill: a `SKILL.md` and a `scripts/notes.py`.
-It teaches a coding agent that reads skills from `.claude/skills/` what the threads are.
+It tells a coding agent what the threads are.
 It gives the agent verbs to list, show, reply to, resolve and reopen threads, so it never edits a thread file by hand.
 The script needs only `python3` and its standard library.
 
 The plugin writes nothing into your vault until you ask it to.
 Turn on "Install the agent skill" in the plugin's settings to install the skill.
-While it is on, every load writes two files: `.claude/skills/agent-threads/SKILL.md` and `.claude/skills/agent-threads/scripts/notes.py`, relative to the vault root.
+While it is on, the plugin writes the two files into an `agent-threads` folder in each skill folder, at every load and when you close its settings.
 A file is written only when it is missing or differs from the copy the plugin carries, so a hand edit does not survive.
-Turning the setting off stops the writes and removes nothing.
+The settings page lists the folders the skill goes to right now.
 
-To use the skill without the plugin, copy `skills/agent-threads/` from this repository into your project's `.claude/skills/`.
+### Where the skill goes
+
+When "Skill folders" is empty, the plugin picks the folders.
+It always writes to `.agents/skills/`, the shared folder of the Agent Skills standard.
+It also writes to the skills folder of each agent that does not read the shared folder, when that agent's own folder already exists at the vault root.
+It never creates a folder for an agent that is not there.
+
+| Folder | When it is written | Read by |
+| --- | --- | --- |
+| `.agents/skills/agent-threads/` | Always | Codex, Pi, oh-my-pi, Hermes, Gemini CLI, OpenCode, Cursor, GitHub Copilot, Amp and Goose |
+| `.claude/skills/agent-threads/` | When `.claude/` exists at the vault root | Claude Code |
+
+Pi reads a project's `.agents/skills/` only when you trust the project.
+Hermes reads project skills only from a root listed in its `skills.trusted_project_dirs` setting.
+
+Some agents read both `.agents/skills/` and `.claude/skills/`: oh-my-pi, OpenCode, Cursor, GitHub Copilot, Amp and Goose.
+In a vault that has `.claude/`, they find two copies of the same skill.
+If that matters, list one folder in "Skill folders".
+
+### Choosing the folders
+
+"Skill folders" takes one folder per line, relative to the vault root.
+The skill goes into an `agent-threads` folder inside each one.
+When the list has at least one usable line, it replaces the automatic folders entirely.
+Blank lines are ignored.
+This list writes the skill to `.claude/skills/agent-threads/` and `tools/skills/agent-threads/`, and nowhere else:
+
+```text
+.claude/skills
+tools/skills
+```
+
+A line is refused when it is absolute or has a `..` segment.
+Absolute means it starts with `/`, `\`, `~` or a drive letter such as `C:`.
+A line that names the vault root itself, such as `.`, is refused too.
+A refused line is never written to, and the settings page shows it with the reason.
+When every line is refused, the automatic folders apply.
+
+Changing the folders or turning the install off removes nothing.
+A copy in a folder the plugin no longer writes to stays until you delete it.
+
+The plugin reads and writes only inside your vault.
+It never uses the network, and it never installs or updates itself.
+The skill is plain files that the plugin copies from its own bundle.
+
+To use the skill without the plugin, copy `skills/agent-threads/` from this repository into your project's `.agents/skills/`, or into your agent's own skills folder, such as `.claude/skills/` for Claude Code.
 
 ## The format
 

@@ -20,7 +20,8 @@ import type { AgentThreadsSettings } from "./settings";
 import { DEFAULT_SETTINGS, AgentThreadsSettingTab, readSettings } from "./settings";
 import { SidecarPoller } from "./sidecar-poller";
 import type { Author, Note, NoteSheet, Status } from "./sidecar";
-import { installSkill, SKILL_DIR } from "./skill-installer";
+import { installSkill } from "./skill-installer";
+import { KNOWN_AGENTS, resolveSkillTargets, type SkillTargets } from "./skill-targets";
 import { normalizedAdapter } from "./normalized-adapter";
 import { createNote, deleteNote, editNote, editNoteReply, isSidecarFor, loadNotes, replyToNote, setNoteStatus, sidecarMtime, type SidecarAdapter } from "./vault-notes";
 import { NotesView, VIEW_TYPE_AGENT_THREADS } from "./view";
@@ -159,11 +160,18 @@ export default class AgentThreadsPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  /** Writes the bundled skill into the vault, telling the owner when something was written or refused. */
+  /** Where the skill goes under the current settings and vault. */
+  skillTargets(): Promise<SkillTargets> {
+    return resolveSkillTargets(this.settings.skillFolders, this.vaultAdapter, KNOWN_AGENTS);
+  }
+
+  /** Writes the bundled skill into every folder it goes to, telling the owner what was written and what failed. */
   async installAgentSkill(): Promise<void> {
     try {
-      const written = await installSkill(this.vaultAdapter, BUNDLED_SKILL);
-      if (written.length > 0) new Notice(`Wrote the agent skill to ${SKILL_DIR}`);
+      const targets = await this.skillTargets();
+      const report = await installSkill(this.vaultAdapter, targets.folders, BUNDLED_SKILL);
+      if (report.written.length > 0) new Notice(`Wrote the agent skill to ${report.written.join(", ")}`);
+      for (const failure of report.failed) new Notice(`Could not write the agent skill to ${failure.folder} (${failure.message})`);
     } catch (error) {
       new Notice(`Could not write the agent skill (${error instanceof Error ? error.message : String(error)})`);
     }

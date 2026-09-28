@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { installSkill, SKILL_DIR } from "./skill-installer";
+import { installSkill } from "./skill-installer";
+import { KNOWN_AGENTS, resolveSkillTargets } from "./skill-targets";
 import type { SidecarAdapter } from "./vault-notes";
 
 /**
  * An in-memory `SidecarAdapter` fake. Files, dirs, and call logs are public,
  * scriptable state. Mirrors the real `DataAdapter.mkdir`, which throws when
- * the target directory already exists rather than silently succeeding.
+ * the target directory already exists rather than silently succeeding. A
+ * write under a folder in `failingFolders` throws.
  */
 class FakeSidecarAdapter implements SidecarAdapter {
   readonly files = new Map<string, string>();
   readonly dirs = new Set<string>();
+  readonly failingFolders = new Set<string>();
   readonly mkdirCalls: string[] = [];
   readonly writeCalls: string[] = [];
   readonly statCalls: string[] = [];
@@ -29,6 +32,9 @@ class FakeSidecarAdapter implements SidecarAdapter {
 
   async write(path: string, data: string): Promise<void> {
     this.writeCalls.push(path);
+    for (const folder of this.failingFolders) {
+      if (path.startsWith(`${folder}/`)) throw new Error(`EACCES: permission denied, open '${path}'`);
+    }
     this.files.set(path, data);
     this.mtimes.set(path, ++this.clock);
   }
@@ -60,37 +66,86 @@ class FakeSidecarAdapter implements SidecarAdapter {
   }
 }
 
+const FOLDER = ".agents/skills/agent-threads";
+
 const FILES = [
-  { path: `${SKILL_DIR}/SKILL.md`, text: "---\nname: agent-threads\n---\nbody\n" },
-  { path: `${SKILL_DIR}/scripts/notes.py`, text: "print('hi')\n" },
+  { path: "SKILL.md", text: "---\nname: agent-threads\n---\nbody\n" },
+  { path: "scripts/notes.py", text: "print('hi')\n" },
 ];
 
 describe("installSkill", () => {
   it("writes every file and its folders into an empty vault", async () => {
     const adapter = new FakeSidecarAdapter();
 
-    expect(await installSkill(adapter, FILES)).toEqual(FILES.map((file) => file.path));
-    expect(adapter.files.get(`${SKILL_DIR}/SKILL.md`)).toBe(FILES[0]?.text);
-    expect(adapter.dirs.has(".claude")).toBe(true);
-    expect(adapter.dirs.has(`${SKILL_DIR}/scripts`)).toBe(true);
+    expect(await installSkill(adapter, [FOLDER], FILES)).toEqual({ written: [FOLDER], failed: [] });
+    expect(adapter.writeCalls).toEqual([`${FOLDER}/SKILL.md`, `${FOLDER}/scripts/notes.py`]);
+    expect(adapter.files.get(`${FOLDER}/SKILL.md`)).toBe(FILES[0]?.text);
+    expect(adapter.dirs.has(".agents")).toBe(true);
+    expect(adapter.dirs.has(`${FOLDER}/scripts`)).toBe(true);
   });
 
   it("writes nothing when every file already matches", async () => {
     const adapter = new FakeSidecarAdapter();
-    await installSkill(adapter, FILES);
+    await installSkill(adapter, [FOLDER], FILES);
     adapter.writeCalls.length = 0;
 
-    expect(await installSkill(adapter, FILES)).toEqual([]);
+    expect(await installSkill(adapter, [FOLDER], FILES)).toEqual({ written: [], failed: [] });
     expect(adapter.writeCalls).toEqual([]);
   });
 
   it("rewrites a file whose text differs, and only that one", async () => {
     const adapter = new FakeSidecarAdapter();
-    await installSkill(adapter, FILES);
-    adapter.files.set(`${SKILL_DIR}/SKILL.md`, "edited by hand");
+    await installSkill(adapter, [FOLDER], FILES);
+    adapter.files.set(`${FOLDER}/SKILL.md`, "edited by hand");
     adapter.writeCalls.length = 0;
 
-    expect(await installSkill(adapter, FILES)).toEqual([`${SKILL_DIR}/SKILL.md`]);
-    expect(adapter.files.get(`${SKILL_DIR}/SKILL.md`)).toBe(FILES[0]?.text);
+    expect(await installSkill(adapter, [FOLDER], FILES)).toEqual({ written: [FOLDER], failed: [] });
+    expect(adapter.writeCalls).toEqual([`${FOLDER}/SKILL.md`]);
+    expect(adapter.files.get(`${FOLDER}/SKILL.md`)).toBe(FILES[0]?.text);
+  });
+
+  it("writes both files into every resolved folder and nowhere else", async () => {
+    const adapter = new FakeSidecarAdapter();
+    adapter.dirs.add(".claude");
+    const targets = await resolveSkillTargets("", adapter, KNOWN_AGENTS);
+
+    expect(await installSkill(adapter, targets.folders, FILES)).toEqual({ written: [FOLDER, ".claude/skills/agent-threads"], failed: [] });
+    expect([...adapter.files.keys()].sort()).toEqual([
+      ".agents/skills/agent-threads/SKILL.md",
+      ".agents/skills/agent-threads/scripts/notes.py",
+      ".claude/skills/agent-threads/SKILL.md",
+      ".claude/skills/agent-threads/scripts/notes.py",
+    ]);
+    expect([...adapter.dirs].sort()).toEqual([
+      ".agents",
+      ".agents/skills",
+      ".agents/skills/agent-threads",
+      ".agents/skills/agent-threads/scripts",
+      ".claude",
+      ".claude/skills",
+      ".claude/skills/agent-threads",
+      ".claude/skills/agent-threads/scripts",
+    ]);
+  });
+
+  it("writes only into the listed folders when the list has a usable line", async () => {
+    const adapter = new FakeSidecarAdapter();
+    adapter.dirs.add(".claude");
+    const targets = await resolveSkillTargets("tools/skills\n../outside", adapter, KNOWN_AGENTS);
+
+    expect(await installSkill(adapter, targets.folders, FILES)).toEqual({ written: ["tools/skills/agent-threads"], failed: [] });
+    expect([...adapter.files.keys()].sort()).toEqual(["tools/skills/agent-threads/SKILL.md", "tools/skills/agent-threads/scripts/notes.py"]);
+    expect(adapter.mkdirCalls).toEqual(["tools", "tools/skills", "tools/skills/agent-threads", "tools/skills/agent-threads/scripts"]);
+  });
+
+  it("keeps writing the other folders when one folder fails", async () => {
+    const adapter = new FakeSidecarAdapter();
+    adapter.failingFolders.add(".claude/skills/agent-threads");
+
+    expect(await installSkill(adapter, [".claude/skills/agent-threads", FOLDER], FILES)).toEqual({
+      written: [FOLDER],
+      failed: [{ folder: ".claude/skills/agent-threads", message: "EACCES: permission denied, open '.claude/skills/agent-threads/SKILL.md'" }],
+    });
+    expect([...adapter.files.keys()].sort()).toEqual([`${FOLDER}/SKILL.md`, `${FOLDER}/scripts/notes.py`]);
   });
 });

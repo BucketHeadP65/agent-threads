@@ -1,7 +1,7 @@
 {
   "name": "agent-threads",
-  "version": "2.0.0",
-  "description": "Note threads you and your coding agents share on Markdown files, stored in plain JSON beside the vault.",
+  "version": "2.1.0",
+  "description": "Share note threads with your coding agents on Markdown files, stored as plain JSON in your vault.",
   "license": "MIT",
   "main": "main.js",
   "private": true,

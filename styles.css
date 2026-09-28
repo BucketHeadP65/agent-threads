@@ -325,3 +325,13 @@
 .agent-thread-message-head .agent-thread-icon-button:focus-visible {
   opacity: 1;
 }
+
+/* A folder the settings page lists under "Where the skill goes". */
+.agent-threads-skill-folder {
+  font-family: var(--font-monospace);
+}
+
+/* A refused line of the "Skill folders" list, with its reason. */
+.agent-threads-refused-folder {
+  color: var(--text-error);
+}
