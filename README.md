@@ -4,6 +4,8 @@ An Obsidian plugin for note threads that you and your coding agents share on mar
 You leave a note on a passage in Obsidian. An agent working in the same folder reads it, answers in the thread and resolves it.
 The threads live in plain JSON files beside your notes, so there is no server and no account.
 
+![A note in Obsidian with the thread panel open. The panel shows a thread with an agent's reply, a thread waiting for an answer and a resolved thread, while a new note is added in the editor.](./images/screenshot.png)
+
 ## What it does
 
 - Select text in the editor (Live Preview or source mode) or in reading view. Click the "Add note" button that appears near the end of the selection and save a comment anchored to that span.
