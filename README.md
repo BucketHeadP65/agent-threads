@@ -4,6 +4,8 @@ An Obsidian plugin for note threads that you and your coding agents share on mar
 You leave a note on a passage in Obsidian. An agent working in the same folder reads it, answers in the thread and resolves it.
 The threads live in plain JSON files beside your notes, so there is no server and no account.
 
+Your notes stay untouched. Some comment plugins write the discussion into the note itself as CriticMarkup, while Agent Threads keeps every thread in its own file and gives your agent a skill with verbs to read and answer them.
+
 ![A note in Obsidian with the thread panel open. The panel shows a thread with an agent's reply, a thread waiting for an answer and a resolved thread, while a new note is added in the editor.](./images/screenshot.png)
 
 ## What it does
