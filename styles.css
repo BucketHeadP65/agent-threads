@@ -14,6 +14,8 @@
 /* The floating "Add note" button that appears near the end of a selection. */
 .agent-threads-affordance {
   position: fixed;
+  top: var(--agent-threads-top, 0);
+  left: var(--agent-threads-left, 0);
   z-index: 60;
   display: flex;
   align-items: center;
@@ -35,6 +37,8 @@
 /* The inline composer that opens when "Add note" is clicked. */
 .agent-threads-composer {
   position: fixed;
+  top: var(--agent-threads-top, 0);
+  left: var(--agent-threads-left, 0);
   z-index: 60;
   width: 280px;
   padding: 8px;
@@ -238,6 +242,8 @@
 /* The floating thread popover a clicked note mark opens. */
 .agent-threads-thread-popover {
   position: fixed;
+  top: var(--agent-threads-top, 0);
+  left: var(--agent-threads-left, 0);
   z-index: 70;
   width: 320px;
   max-height: 320px;

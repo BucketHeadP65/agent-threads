@@ -66,10 +66,9 @@ export function serializeSheet(sheet: NoteSheet): string {
 
 /** A uuid4 string, minted the same way `notes.py`'s `add_note` mints a note id. */
 export function mintId(): string {
-  const cryptoObj = globalThis.crypto;
-  if (typeof cryptoObj?.randomUUID === "function") return cryptoObj.randomUUID();
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
   const bytes = new Uint8Array(16);
-  cryptoObj.getRandomValues(bytes);
+  crypto.getRandomValues(bytes);
   bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x40;
   bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80;
   const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));

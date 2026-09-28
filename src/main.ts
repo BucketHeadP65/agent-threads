@@ -21,7 +21,8 @@ import { DEFAULT_SETTINGS, AgentThreadsSettingTab, readSettings } from "./settin
 import { SidecarPoller } from "./sidecar-poller";
 import type { Author, Note, NoteSheet, Status } from "./sidecar";
 import { installSkill, SKILL_DIR } from "./skill-installer";
-import { createNote, deleteNote, editNote, editNoteReply, isSidecarFor, loadNotes, replyToNote, setNoteStatus, sidecarMtime } from "./vault-notes";
+import { normalizedAdapter } from "./normalized-adapter";
+import { createNote, deleteNote, editNote, editNoteReply, isSidecarFor, loadNotes, replyToNote, setNoteStatus, sidecarMtime, type SidecarAdapter } from "./vault-notes";
 import { NotesView, VIEW_TYPE_AGENT_THREADS } from "./view";
 
 export interface NoteAffordanceOptions {
@@ -42,10 +43,15 @@ export default class AgentThreadsPlugin extends Plugin {
   private threadPopoverEl: HTMLDivElement | null = null;
   private readonly sidecarWrittenListeners = new Set<(path: string) => void>();
   private readonly sidecarPoller = new SidecarPoller(
-    (path) => sidecarMtime(this.app.vault.adapter, path),
+    (path) => sidecarMtime(this.vaultAdapter, path),
     (path) => this.notifySidecarWritten(path),
     SIDECAR_POLL_INTERVAL_MS,
   );
+
+  /** The vault's file adapter with normalized paths, the only way the plugin touches thread files and the skill. */
+  private get vaultAdapter(): SidecarAdapter {
+    return normalizedAdapter(this.app.vault.adapter);
+  }
 
   override async onload(): Promise<void> {
     this.settings = readSettings(await this.loadData());
@@ -53,9 +59,9 @@ export default class AgentThreadsPlugin extends Plugin {
 
     this.registerView(VIEW_TYPE_AGENT_THREADS, (leaf) => new NotesView(leaf, this));
 
-    this.addRibbonIcon("message-square", "Open Agent Threads", () => void this.revealNotesView());
+    this.addRibbonIcon("message-square", "Open note threads", () => void this.revealNotesView());
     this.addCommand({
-      id: "open-agent-threads",
+      id: "open-panel",
       name: "Open notes panel",
       callback: () => void this.revealNotesView(),
     });
@@ -129,7 +135,7 @@ export default class AgentThreadsPlugin extends Plugin {
     const leaf = existing ?? this.app.workspace.getRightLeaf(false);
     if (!leaf) return;
     if (!existing) await leaf.setViewState({ type: VIEW_TYPE_AGENT_THREADS, active: true });
-    this.app.workspace.revealLeaf(leaf);
+    await this.app.workspace.revealLeaf(leaf);
   }
 
   private async onVaultModify(file: TFile): Promise<void> {
@@ -156,50 +162,50 @@ export default class AgentThreadsPlugin extends Plugin {
   /** Writes the bundled skill into the vault, telling the owner when something was written or refused. */
   async installAgentSkill(): Promise<void> {
     try {
-      const written = await installSkill(this.app.vault.adapter, BUNDLED_SKILL);
-      if (written.length > 0) new Notice(`Agent Threads wrote the agent skill to ${SKILL_DIR}`);
+      const written = await installSkill(this.vaultAdapter, BUNDLED_SKILL);
+      if (written.length > 0) new Notice(`Wrote the agent skill to ${SKILL_DIR}`);
     } catch (error) {
-      new Notice(`Agent Threads could not write the agent skill (${error instanceof Error ? error.message : String(error)})`);
+      new Notice(`Could not write the agent skill (${error instanceof Error ? error.message : String(error)})`);
     }
   }
 
-  // Thread file operations, delegated to vault-notes.ts against the live vault adapter.
+  // Thread file operations, delegated to vault-notes.ts against the normalized vault adapter.
 
   loadNotesFor(path: string): Promise<NoteSheet> {
-    return loadNotes(this.app.vault.adapter, path);
+    return loadNotes(this.vaultAdapter, path);
   }
 
   async createNoteFor(path: string, anchor: NoteAnchor, text: string): Promise<Note> {
-    const note = await createNote(this.app.vault.adapter, path, anchor, text);
+    const note = await createNote(this.vaultAdapter, path, anchor, text);
     this.notifySidecarWritten(path);
     return note;
   }
 
   async editNoteFor(path: string, noteId: string, text: string): Promise<Note> {
-    const note = await editNote(this.app.vault.adapter, path, noteId, text);
+    const note = await editNote(this.vaultAdapter, path, noteId, text);
     this.notifySidecarWritten(path);
     return note;
   }
 
   async editReplyFor(path: string, noteId: string, replyIndex: number, text: string): Promise<Note> {
-    const note = await editNoteReply(this.app.vault.adapter, path, noteId, replyIndex, text);
+    const note = await editNoteReply(this.vaultAdapter, path, noteId, replyIndex, text);
     this.notifySidecarWritten(path);
     return note;
   }
 
   async deleteNoteFor(path: string, noteId: string): Promise<void> {
-    await deleteNote(this.app.vault.adapter, path, noteId);
+    await deleteNote(this.vaultAdapter, path, noteId);
     this.notifySidecarWritten(path);
   }
 
   async replyToNoteFor(path: string, noteId: string, text: string): Promise<Note> {
-    const note = await replyToNote(this.app.vault.adapter, path, noteId, "owner", text);
+    const note = await replyToNote(this.vaultAdapter, path, noteId, "owner", text);
     this.notifySidecarWritten(path);
     return note;
   }
 
   async setNoteStatusFor(path: string, noteId: string, status: Status): Promise<Note> {
-    const note = await setNoteStatus(this.app.vault.adapter, path, noteId, status);
+    const note = await setNoteStatus(this.vaultAdapter, path, noteId, status);
     this.notifySidecarWritten(path);
     return note;
   }
@@ -228,7 +234,7 @@ export default class AgentThreadsPlugin extends Plugin {
   showNoteAffordance(options: NoteAffordanceOptions): void {
     if (this.composerEl) return;
     if (!this.affordanceButton) {
-      const button = document.createElement("button");
+      const button = createEl("button");
       button.textContent = "Add note";
       button.className = "agent-threads-affordance";
       button.onmousedown = (event) => event.preventDefault();
@@ -236,8 +242,7 @@ export default class AgentThreadsPlugin extends Plugin {
       this.affordanceButton = button;
     }
     const button = this.affordanceButton;
-    button.style.top = `${options.top + 4}px`;
-    button.style.left = `${options.left}px`;
+    placeAt(button, options.top + 4, options.left);
     button.onclick = () => this.openComposer(options);
   }
 
@@ -253,24 +258,23 @@ export default class AgentThreadsPlugin extends Plugin {
     const file = this.app.workspace.getActiveFile();
     if (!file) return;
 
-    const panel = document.createElement("div");
+    const panel = createDiv();
     panel.className = "agent-threads-composer";
-    panel.style.top = `${options.top + 4}px`;
-    panel.style.left = `${options.left}px`;
+    placeAt(panel, options.top + 4, options.left);
 
-    const textarea = document.createElement("textarea");
+    const textarea = createEl("textarea");
     textarea.placeholder = "Add a note…";
     textarea.rows = 3;
     panel.appendChild(textarea);
 
-    const actions = document.createElement("div");
+    const actions = createDiv();
     actions.className = "agent-threads-composer-actions";
 
-    const cancel = document.createElement("button");
+    const cancel = createEl("button");
     cancel.textContent = "Cancel";
     cancel.onclick = () => this.closeComposer();
 
-    const save = document.createElement("button");
+    const save = createEl("button");
     save.textContent = "Save";
     save.className = "is-primary";
     save.onclick = () => void this.saveComposer(file, options, textarea);
@@ -321,17 +325,16 @@ export default class AgentThreadsPlugin extends Plugin {
 
     const rerender = (next: PopoverState): void => void this.renderThreadPopover(path, noteId, at, next);
 
-    const popover = document.createElement("div");
+    const popover = createDiv();
     popover.className = "agent-threads-thread-popover";
-    popover.style.top = `${Math.min(at.top + 8, Math.max(0, window.innerHeight - 320))}px`;
-    popover.style.left = `${Math.min(at.left, Math.max(0, window.innerWidth - 340))}px`;
+    placeAt(popover, Math.min(at.top + 8, Math.max(0, window.innerHeight - 320)), Math.min(at.left, Math.max(0, window.innerWidth - 340)));
 
-    const quote = document.createElement("blockquote");
+    const quote = createEl("blockquote");
     quote.className = "agent-thread-quote";
     quote.textContent = note.anchor.exact;
     popover.appendChild(quote);
 
-    const messages = document.createElement("div");
+    const messages = createDiv();
     messages.className = "agent-thread-replies";
     const message = (author: Author, text: string, replyIndex: number | null): void => {
       const editingThis = state.editing !== null && state.editing.replyIndex === replyIndex;
@@ -351,21 +354,21 @@ export default class AgentThreadsPlugin extends Plugin {
     note.replies.forEach((reply, index) => message(reply.author, reply.text, index));
     popover.appendChild(messages);
 
-    const composer = document.createElement("textarea");
+    const composer = createEl("textarea");
     composer.className = "agent-thread-reply-input";
     composer.placeholder = "Reply";
     composer.rows = 2;
     popover.appendChild(composer);
 
-    const actions = document.createElement("div");
+    const actions = createDiv();
     actions.className = "agent-threads-composer-actions";
 
     if (state.confirmingDelete) {
-      const confirm = document.createElement("button");
+      const confirm = createEl("button");
       confirm.textContent = "Delete?";
       confirm.className = "agent-thread-confirm-delete";
       confirm.onclick = () => void this.deleteFromPopover(path, noteId);
-      const cancel = document.createElement("button");
+      const cancel = createEl("button");
       cancel.textContent = "Cancel";
       cancel.onclick = () => rerender({ editing: null, confirmingDelete: false });
       actions.append(confirm, cancel);
@@ -375,7 +378,7 @@ export default class AgentThreadsPlugin extends Plugin {
       actions.appendChild(trash);
     }
 
-    const reply = document.createElement("button");
+    const reply = createEl("button");
     reply.textContent = "Reply";
     reply.className = "is-primary";
     reply.onclick = () => void this.replyFromPopover(path, noteId, at, composer);
@@ -388,11 +391,11 @@ export default class AgentThreadsPlugin extends Plugin {
   }
 
   private popoverMessage(author: Author, text: string, controls: MessageControls): HTMLDivElement {
-    const row = document.createElement("div");
+    const row = createDiv();
     row.className = `agent-thread-reply is-${author}`;
-    const head = document.createElement("div");
+    const head = createDiv();
     head.className = "agent-thread-message-head";
-    const label = document.createElement("span");
+    const label = createSpan();
     label.className = "agent-thread-reply-author";
     label.textContent = author === "owner" ? "You" : "Agent";
     head.appendChild(label);
@@ -405,17 +408,17 @@ export default class AgentThreadsPlugin extends Plugin {
 
     if (controls.editor) {
       const editing = controls.editor;
-      const editor = document.createElement("textarea");
+      const editor = createEl("textarea");
       editor.className = "agent-thread-reply-input";
       editor.rows = 3;
       editor.value = text;
       row.appendChild(editor);
-      const actions = document.createElement("div");
+      const actions = createDiv();
       actions.className = "agent-threads-composer-actions";
-      const cancel = document.createElement("button");
+      const cancel = createEl("button");
       cancel.textContent = "Cancel";
       cancel.onclick = editing.onCancel;
-      const save = document.createElement("button");
+      const save = createEl("button");
       save.textContent = "Save";
       save.className = "is-primary";
       save.onclick = () => {
@@ -427,7 +430,7 @@ export default class AgentThreadsPlugin extends Plugin {
       return row;
     }
 
-    const body = document.createElement("p");
+    const body = createEl("p");
     body.className = "agent-thread-text";
     body.textContent = text;
     row.appendChild(body);
@@ -481,9 +484,14 @@ interface MessageControls {
   editor: { onSave: (text: string) => void; onCancel: () => void } | null;
 }
 
+/** Positions a floating element at a viewport point through the CSS variables styles.css reads. */
+function placeAt(element: HTMLElement, top: number, left: number): void {
+  element.setCssProps({ "--agent-threads-top": `${top}px`, "--agent-threads-left": `${left}px` });
+}
+
 /** A ghost icon button carrying a lucide icon and an accessible label. */
 function iconButton(icon: string, label: string): HTMLButtonElement {
-  const button = document.createElement("button");
+  const button = createEl("button");
   button.className = "agent-thread-icon-button";
   button.setAttr("aria-label", label);
   setIcon(button, icon);

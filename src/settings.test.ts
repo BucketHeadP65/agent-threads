@@ -3,9 +3,13 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS, readSettings } from "./settings-shape";
 
 describe("readSettings", () => {
-  it("defaults to installing the skill", () => {
+  it("defaults to not installing the skill", () => {
     expect(readSettings(null)).toEqual(DEFAULT_SETTINGS);
-    expect(readSettings(undefined)).toEqual({ installAgentSkill: true });
+    expect(readSettings(undefined)).toEqual({ installAgentSkill: false });
+  });
+
+  it("keeps a stored true", () => {
+    expect(readSettings({ installAgentSkill: true })).toEqual({ installAgentSkill: true });
   });
 
   it("keeps a stored false", () => {
@@ -13,7 +17,7 @@ describe("readSettings", () => {
   });
 
   it("ignores anything that is not a boolean", () => {
-    expect(readSettings({ installAgentSkill: "no" })).toEqual({ installAgentSkill: true });
-    expect(readSettings("junk")).toEqual({ installAgentSkill: true });
+    expect(readSettings({ installAgentSkill: "yes" })).toEqual({ installAgentSkill: false });
+    expect(readSettings("junk")).toEqual({ installAgentSkill: false });
   });
 });

@@ -16,7 +16,7 @@ export class SidecarPoller {
   private activePath: string | null = null;
   private baseline: number | null = null;
   private hasBaseline = false;
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private timer: number | null = null;
 
   constructor(
     private readonly readVersion: (path: string) => Promise<number | null>,
@@ -31,7 +31,7 @@ export class SidecarPoller {
     this.hasBaseline = false;
     this.baseline = null;
     this.stopTimer();
-    if (path !== null) this.timer = setInterval(() => void this.tick(), this.intervalMs);
+    if (path !== null) this.timer = window.setInterval(() => void this.tick(), this.intervalMs);
   }
 
   /** Stops polling for good. */
@@ -41,7 +41,7 @@ export class SidecarPoller {
 
   private stopTimer(): void {
     if (this.timer !== null) {
-      clearInterval(this.timer);
+      window.clearInterval(this.timer);
       this.timer = null;
     }
   }

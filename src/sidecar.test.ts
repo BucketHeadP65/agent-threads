@@ -7,7 +7,6 @@ import {
   emptySheet,
   mintId,
   mintTimestamp,
-  type NoteSheet,
   parseSheet,
   removeNote,
   replaceNote,

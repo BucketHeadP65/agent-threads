@@ -29,13 +29,16 @@ It does not run on mobile.
 
 ## The agent skill
 
-On load the plugin writes an agent skill into the vault at `.claude/skills/agent-threads/`: a `SKILL.md` and a `scripts/notes.py`.
-A coding agent that reads skills from `.claude/skills/` and is opened at the vault root then knows what the threads are.
-It gets verbs to list, show, reply to, resolve and reopen them, so it never edits a thread file by hand.
+The plugin carries an agent skill: a `SKILL.md` and a `scripts/notes.py`.
+It teaches a coding agent that reads skills from `.claude/skills/` what the threads are.
+It gives the agent verbs to list, show, reply to, resolve and reopen threads, so it never edits a thread file by hand.
 The script needs only `python3` and its standard library.
 
-The plugin rewrites the files whenever they differ from the copy it carries, so a hand edit does not survive.
-The setting "Install the agent skill" turns the write off. An installed copy is never removed.
+The plugin writes nothing into your vault until you ask it to.
+Turn on "Install the agent skill" in the plugin's settings to install the skill.
+While it is on, every load writes two files: `.claude/skills/agent-threads/SKILL.md` and `.claude/skills/agent-threads/scripts/notes.py`, relative to the vault root.
+A file is written only when it is missing or differs from the copy the plugin carries, so a hand edit does not survive.
+Turning the setting off stops the writes and removes nothing.
 
 To use the skill without the plugin, copy `skills/agent-threads/` from this repository into your project's `.claude/skills/`.
 
@@ -50,6 +53,7 @@ Each thread file is one compact JSON object with a `version` and a list of notes
 
 ```bash
 npm install     # a .npmrc sets legacy-peer-deps for the obsidian and @codemirror peer ranges
+npm run lint    # eslint with the Obsidian plugin rules
 npm test        # vitest, including a check that runs notes.py and compares its bytes with the plugin's
 npm run build   # tsc --noEmit, then esbuild to main.js
 npm run dev     # esbuild in watch mode

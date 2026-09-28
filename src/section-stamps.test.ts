@@ -5,20 +5,20 @@ import { sectionLines, selectionPlacement, stampSection, stampedSections } from 
 
 describe("section stamps", () => {
   it("round-trips the source lines a section renders", () => {
-    const section = document.createElement("div");
+    const section = createDiv();
     stampSection(section, 4, 7);
     expect(sectionLines(section)).toEqual({ lineStart: 4, lineEnd: 7 });
   });
 
   it("reads nothing from an unstamped element", () => {
-    expect(sectionLines(document.createElement("div"))).toBeNull();
+    expect(sectionLines(createDiv())).toBeNull();
   });
 
   it("lists the stamped sections under a root in document order", () => {
-    const root = document.createElement("div");
-    const first = document.createElement("div");
-    const plain = document.createElement("div");
-    const second = document.createElement("div");
+    const root = createDiv();
+    const first = createDiv();
+    const plain = createDiv();
+    const second = createDiv();
     stampSection(first, 0, 0);
     stampSection(second, 2, 3);
     root.append(first, plain, second);
@@ -32,17 +32,17 @@ describe("section stamps", () => {
 
 describe("selectionPlacement", () => {
   function twoSections(): { root: HTMLElement; a: Text; b: Text } {
-    const root = document.createElement("div");
-    const first = document.createElement("div");
-    const second = document.createElement("div");
+    const root = createDiv();
+    const first = createDiv();
+    const second = createDiv();
     stampSection(first, 2, 2);
     stampSection(second, 4, 5);
     const a = document.createTextNode("Verify at work.");
     const b = document.createTextNode("Graph delta semantics");
-    const p = document.createElement("p");
+    const p = createEl("p");
     p.append(a);
     first.append(p);
-    const li = document.createElement("li");
+    const li = createEl("li");
     li.append(b);
     second.append(li);
     root.append(first, second);

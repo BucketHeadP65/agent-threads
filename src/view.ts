@@ -32,7 +32,7 @@ export class NotesView extends ItemView {
   }
 
   override getDisplayText(): string {
-    return "Agent Threads";
+    return "Note threads";
   }
 
   override getIcon(): string {
@@ -87,7 +87,7 @@ export class NotesView extends ItemView {
     container.addClass("agent-threads-view");
 
     if (!this.file) {
-      container.createEl("p", { cls: "agent-threads-empty", text: "Open a markdown file to see its notes." });
+      container.createEl("p", { cls: "agent-threads-empty", text: "Open a Markdown file to see its notes." });
       return;
     }
 

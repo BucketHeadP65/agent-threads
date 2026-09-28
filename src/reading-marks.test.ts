@@ -50,8 +50,8 @@ function capturingPlugin(overrides: Partial<ReadingMarksPlugin> = {}): {
 }
 
 function paragraphSection(text: string): HTMLElement {
-  const section = document.createElement("div");
-  const p = document.createElement("p");
+  const section = createDiv();
+  const p = createEl("p");
   p.textContent = text;
   section.append(p);
   return section;
@@ -91,16 +91,16 @@ describe("registerReadingMarks", () => {
     const sheet = sheetWith({ exact: "Verify at work.**\n\n1. Graph delta semantics per item: does it?", prefix: "Intro.\n\n**", suffix: "\n2. Delta token" });
     const { plugin, run } = capturingPlugin({ loadNotesFor: () => Promise.resolve(sheet) });
     registerReadingMarks(plugin);
-    const boldSection = document.createElement("div");
-    const p = document.createElement("p");
-    const strong = document.createElement("strong");
+    const boldSection = createDiv();
+    const p = createEl("p");
+    const strong = createEl("strong");
     strong.textContent = "Verify at work.";
     p.append(strong);
     boldSection.append(p);
-    const listSection = document.createElement("div");
-    const ol = document.createElement("ol");
+    const listSection = createDiv();
+    const ol = createEl("ol");
     for (const item of ["Graph delta semantics per item: does it?", "Delta token lifetime."]) {
-      const li = document.createElement("li");
+      const li = createEl("li");
       li.textContent = item;
       ol.append(li);
     }
@@ -159,7 +159,7 @@ describe("registerReadingMarks", () => {
 describe("refreshReadingMarks", () => {
   /** A preview pane whose three sections were rendered (and stamped) from SOURCE. */
   function fakePane(overrides: Partial<ReadingPane> = {}): { pane: ReadingPane; root: HTMLElement; rerender: ReturnType<typeof vi.fn> } {
-    const root = document.createElement("div");
+    const root = createDiv();
     const lines: [number, number, string][] = [
       [0, 0, "alpha beta"],
       [2, 2, "alpha beta"],
@@ -181,7 +181,7 @@ describe("refreshReadingMarks", () => {
     return { pane, root, rerender };
   }
 
-  const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+  const tick = () => new Promise((resolve) => window.setTimeout(resolve, 0));
 
   it("marks a fresh note in place, in every pane showing the path, on the one section that holds it", async () => {
     const sheet = sheetWith({ exact: "alpha beta", prefix: "", suffix: "\n\ngamma" });
@@ -234,7 +234,7 @@ describe("refreshReadingMarks", () => {
 
   it("rerenders a pane whose rendered sections carry no source lines instead of guessing", async () => {
     const sheet = sheetWith({ exact: "gamma", prefix: "", suffix: "" });
-    const root = document.createElement("div");
+    const root = createDiv();
     root.append(paragraphSection("alpha beta"), paragraphSection("gamma"));
     const rerender = vi.fn();
     const pane: ReadingPane = { getMode: () => "preview", file: { path: "notes.md" }, data: SOURCE, previewMode: { containerEl: root, rerender } };
@@ -248,7 +248,7 @@ describe("refreshReadingMarks", () => {
   });
 
   it("does not rerender an unstamped pane when the file has no notes", async () => {
-    const root = document.createElement("div");
+    const root = createDiv();
     root.append(paragraphSection("alpha beta"));
     const rerender = vi.fn();
     const pane: ReadingPane = { getMode: () => "preview", file: { path: "notes.md" }, data: SOURCE, previewMode: { containerEl: root, rerender } };

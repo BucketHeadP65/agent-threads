@@ -122,11 +122,16 @@ function markSections(sections: readonly StampedSection[], sheet: NoteSheet, sou
   }
 }
 
+/** True when `node` is a text node, checked by node type so it holds across windows. */
+function isText(node: Node): node is Text {
+  return node.nodeType === Node.TEXT_NODE;
+}
+
 function collectTextNodes(root: HTMLElement): Text[] {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes: Text[] = [];
   for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
-    if (node instanceof Text) nodes.push(node);
+    if (isText(node)) nodes.push(node);
   }
   return nodes;
 }
@@ -144,8 +149,7 @@ function wrapRange(textNodes: readonly Text[], from: number, to: number, noteId:
     let target = node;
     if (localFrom > 0) target = target.splitText(localFrom);
     if (localTo - localFrom < target.data.length) target.splitText(localTo - localFrom);
-    const mark = document.createElement("span");
-    mark.className = "agent-thread-mark";
+    const mark = createSpan({ cls: "agent-thread-mark" });
     mark.dataset.agentThreadId = noteId;
     mark.onclick = (event) => onClick(noteId, event);
     target.replaceWith(mark);
