@@ -74,6 +74,6 @@ export function selectionPlacement(range: Range): SelectionPlacement | null {
 }
 
 function enclosingSection(node: Node | null): HTMLElement | null {
-  const element = node instanceof Element ? node : (node?.parentElement ?? null);
+  const element = node?.instanceOf(Element) ? node : (node?.parentElement ?? null);
   return element?.closest<HTMLElement>(STAMPED) ?? null;
 }

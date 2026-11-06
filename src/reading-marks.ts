@@ -128,7 +128,7 @@ function isText(node: Node): node is Text {
 }
 
 function collectTextNodes(root: HTMLElement): Text[] {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes: Text[] = [];
   for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
     if (isText(node)) nodes.push(node);

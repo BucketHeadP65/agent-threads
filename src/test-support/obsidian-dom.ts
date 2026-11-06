@@ -1,6 +1,6 @@
 /**
  * Installs the subset of Obsidian's global DOM helpers (`createEl`, `createDiv`,
- * `createSpan`) that the plugin and its tests call, so they run under jsdom.
+ * `createSpan`, `Node.instanceOf`) that the plugin and its tests call, so they run under jsdom.
  * It supports the `cls`, `text` and `attr` options only. Outside a DOM
  * environment it does nothing.
  */
@@ -28,6 +28,13 @@ function install(target: Window): void {
   Object.defineProperty(target, "createEl", { value: build, configurable: true });
   Object.defineProperty(target, "createDiv", { value: (options?: ElementOptions | string) => build("div", options), configurable: true });
   Object.defineProperty(target, "createSpan", { value: (options?: ElementOptions | string) => build("span", options), configurable: true });
+  const nodePrototype = (target as unknown as { Node: { prototype: object } }).Node.prototype;
+  Object.defineProperty(nodePrototype, "instanceOf", {
+    value(this: object, type: new () => object) {
+      return this instanceof type;
+    },
+    configurable: true,
+  });
 }
 
 if (typeof window !== "undefined") install(window);

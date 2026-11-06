@@ -106,7 +106,7 @@ export default class AgentThreadsPlugin extends Plugin {
       if (this.settings.installAgentSkill) void this.installAgentSkill();
     });
 
-    this.registerDomEvent(document, "mousedown", (event) => {
+    this.registerDomEvent(activeDocument, "mousedown", (event) => {
       const popover = this.threadPopoverEl;
       if (popover && event.target instanceof Node && !popover.contains(event.target)) this.closeThreadPopover();
     });
@@ -255,7 +255,7 @@ export default class AgentThreadsPlugin extends Plugin {
       button.textContent = "Add note";
       button.className = "agent-threads-affordance";
       button.onmousedown = (event) => event.preventDefault();
-      document.body.appendChild(button);
+      activeDocument.body.appendChild(button);
       this.affordanceButton = button;
     }
     const button = this.affordanceButton;
@@ -299,7 +299,7 @@ export default class AgentThreadsPlugin extends Plugin {
     actions.append(cancel, save);
     panel.appendChild(actions);
 
-    document.body.appendChild(panel);
+    activeDocument.body.appendChild(panel);
     this.composerEl = panel;
     textarea.focus();
   }
@@ -402,7 +402,7 @@ export default class AgentThreadsPlugin extends Plugin {
     actions.appendChild(reply);
     popover.appendChild(actions);
 
-    document.body.appendChild(popover);
+    activeDocument.body.appendChild(popover);
     this.threadPopoverEl = popover;
     popover.querySelector("textarea")?.focus();
   }

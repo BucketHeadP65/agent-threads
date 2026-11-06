@@ -26,10 +26,10 @@ import { lineSpan } from "./section-marks";
 import { selectionPlacement } from "./section-stamps";
 
 export function registerReadingViewSelection(plugin: AgentThreadsPlugin): void {
-  plugin.registerDomEvent(document, "selectionchange", () => {
+  plugin.registerDomEvent(activeDocument, "selectionchange", () => {
     const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
     const mode = view?.getMode() ?? null;
-    const selection = document.getSelection();
+    const selection = activeDocument.getSelection();
     const state: SelectionState | null = selection === null ? null : { text: selection.toString(), isCollapsed: selection.isCollapsed };
 
     const action = affordanceAction(mode, state);
@@ -65,7 +65,7 @@ export function registerReadingViewSelection(plugin: AgentThreadsPlugin): void {
 /** The rendered heading level the selection starts inside (1 to 6), or `null` outside a heading. */
 function headingLevelOf(selection: Selection): number | null {
   const node = selection.anchorNode;
-  const element = node instanceof Element ? node : (node?.parentElement ?? null);
+  const element = node?.instanceOf(Element) ? node : (node?.parentElement ?? null);
   const heading = element?.closest("h1, h2, h3, h4, h5, h6") ?? null;
   if (heading === null) return null;
   const level = Number(heading.tagName.slice(1));
